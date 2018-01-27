@@ -5,6 +5,7 @@ from pygame.locals import *
 
 from math import *
 import random
+import itertools
 
 import pandas as pd
 
@@ -19,7 +20,7 @@ from init import *
 
 # Initialize Players, also creates a spritegroup for the meeples of each player
 
-setup_players = [["P1", True], ["P2", False], ["P3", False], ["P4", True]]
+setup_players = [["Rot", True], ["Gelb", False], ["Blau", False], ["Grün", True]]
 
 setup = pd.DataFrame(setup_players, columns=["name", "joined_game"])
 
@@ -102,17 +103,24 @@ pygame.display.flip()		# update the full display
 
 # Choose starting player randomly
 active_p = random.choice(list(players.index))
+print(active_p)
+
+playerloop = itertools.cycle(players.index)
+while (next(playerloop) != active_p):
+	continue
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~ start the game! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 running = True
 while running:
+	SG_allowedSprites.empty()
 	player = players.loc[active_p]
 	print("Spieler {} an der Reihe!".format(player["name"]))
 	print("Du darfst noch {} mal würfeln".format(player["throws_left"]))
 	# Set which elements the player can click
 	add_sprite(_from=[Die, player["meeplesprites"]],
 					_to=SG_allowedSprites)
+	print(SG_allowedSprites)
 
 	while player["throws_left"] > 0:
 		mouse_pos = pygame.mouse.get_pos()
@@ -126,28 +134,34 @@ while running:
 			elif event.type == MOUSEBUTTONDOWN:
 				if event.button == 1:				# left mouse button
 					clickedsprite = find_sprite(SG_allowedSprites, mouse_pos)
+					print(clickedsprite, mouse_pos)
 					try:
-						if clickedsprite is not None:
-							if type(sprite) == S_die:
+						if not clickedsprite is None:
+							if type(clickedsprite) == S_die:
+								print("würfel geklickt")
 								if not Die.rolling:
 									Die.start_roll()
 								else:
 									Die.stop_roll()
 								grabbed_meeple = None
-							elif type(sprite) == S_Meeple:
-								grabbed_meeple = copy(clickedsprite)
-								sprite.grab(SG_allMeeples)
+							elif type(clickedsprite) == S_Meeple:
+								print("meeple geklickt")
+								grabbed_meeple = clickedsprite
+								clickedsprite.grab(SG_allMeeples)
 					except:
 						print("Hier ist kein klickbarer sprite")
 					finally:
 						clickedsprite = None
 			elif event.type == MOUSEBUTTONUP:
-				if (event.button == 1) and grabbed_meeple:
+				if (event.button == 1) and (not grabbed_meeple is None):
 					if grabbed_meeple.drop(grabbed_meeple.save_pos,
 									SG_admissable,
-									player.name):
+									player):
+						grabbed_meeple = None
 						SG_admissable.empty()
 						player["throws_left"] -= 0
+						print("Spieler {} hat fertig!".format(player["name"]))
+						break
 					else:
 						print("Stell den Meeple auf's richtige Feld!")
 			elif event.type == ROLL_DIE:
@@ -172,10 +186,7 @@ while running:
 
 		clock.tick(120)
 	# update the start of all players
-	for player in players:
-		players[2].check_state(number_players)
+	Game.update_player(player)
 	# move to next participating player
-	active_player = ((active_player + 1) % 4) + 1
-	while players[active_player][1] is False:
-		active_player += 1
+	active_p = next(playerloop)
 

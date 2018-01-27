@@ -49,6 +49,23 @@ def find_sprite(in_group, pos):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Classes ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+class Game:
+	""" Functions to check the game state"""
+
+	def update_player(player):
+		global players
+		global number_players
+
+		if player["meeples_home"] == 4:
+			number_players -= 1
+			print("{} hat gewonnen!".format(player["name"]))
+			players.drop(player.name)
+		elif player["meeples_out"] == 4:
+			player["throws_left"] = 3
+		else:
+			player["throws_left"] = 1
+
+
 class Player:
 	def __init__(self, id):
 		self.turn = False
@@ -69,29 +86,17 @@ class Player:
 		print("meeples von spieler {} gebaut!".format(playerid))
 		return meeples
 
-	def set_admissable(self, number):
+	def set_admissable(player, number):
 		allowedFields = []
-		if (self.meeples_out == 4) & (number ==6):
-				print("Geh auf's Startfeld!")
-				goto = SG_BoardFields.sprites()[self.id*10]
+		if (player["meeples_out"] == 4) & (number ==6):
+				goto = SG_BoardFields.sprites()[player.name*10]
 				goto.admissable = True
+				print("Geh auf's Startfeld!", goto.id)
 				SG_admissable.add(goto)
 				SG_allowedSprites.add(goto)
-				print(goto.id)
-
 		else:
-			for meeple in self.SG_meeples:
+			for meeple in player["meeplesprites"]:
 				continue
-				# allowedFields.append(meeple.)
-
-	def check_state(self, number_players):
-		if self.meeples_home == 4:
-			number_players -= 1
-			print("Du hast gewonnen!")
-		if self.meeples_out == 4:
-			self.number_throws = 3
-		else:
-			self.number_throws = 1
 
 
 class Event_Box:
@@ -251,7 +256,7 @@ class S_Meeple(pygame.sprite.Sprite):
 									   False)[0]
 			if dropped_on.type == "home":
 				currentplayer["meeples_home"] += 1
-			elif dropped_on.id == currentplayer.id*10:
+			elif dropped_on.id == currentplayer.name*10:
 				currentplayer.meeples_out -= 1
 			self.grabbed = False
 
@@ -344,17 +349,17 @@ class S_die(pygame.sprite.Sprite):
 			# Set the admissable fields
 			if self.number == 6:
 				if currentplayer["meeples_out"] == 4:
-					currentplayer.set_admissable(self.number)
+					Player.set_admissable(currentplayer, self.number)
 				else:
-					currentplayer.set_admissable(self.number)
+					Player.set_admissable(currentplayer, self.number)
 					currentplayer.number_throws += 1
 					print("Extrawurf bekommen!")
 			else:				# no 6
-				if currentplayer.meeples_out == 4:
-					currentplayer.number_throws -= 1	# one less try
+				if currentplayer["meeples_out"] == 4:
+					currentplayer["throws_left"] -= 1	# one less try
 					print("Du darfst noch {} mal würfeln".format(
-						currentplayer.number_throws))
-				currentplayer.set_admissable(self.number)
+						currentplayer["throws_left"]))
+				Player.set_admissable(currentplayer, self.number)
 
 
 

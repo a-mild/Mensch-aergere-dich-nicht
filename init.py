@@ -16,6 +16,7 @@ from objects import *
 
 pygame.init()
 
+grabbed_meeple = None
 
 
 
